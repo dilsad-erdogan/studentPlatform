@@ -1,30 +1,50 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebase/firebase';
+import { setUser } from './redux/authSlice';
 import Login from './pages/Login';
+import DashboardPage from './pages/DashboardPage';
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const dispatch = useDispatch();
+  const { user, isAuthenticated, loading } = useSelector((state) => state.auth);
 
-  if (isLoggedIn) {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        dispatch(
+          setUser({
+            uid: currentUser.uid,
+            email: currentUser.email,
+            displayName: currentUser.displayName,
+            photoURL: currentUser.photoURL,
+          })
+        );
+      } else {
+        dispatch(setUser(null));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [dispatch]);
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-[#111827] border border-gray-800 rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-4">
-          <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-2xl mx-auto border border-emerald-500/30">
-            ✓
-          </div>
-          <h2 className="text-2xl font-bold text-white">Giriş Başarılı!</h2>
-          <p className="text-gray-400 text-sm">Yönetici Paneline Hoş Geldiniz.</p>
-          <button
-            onClick={() => setIsLoggedIn(false)}
-            className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition cursor-pointer mt-4"
-          >
-            Çıkış Yap / Giriş Ekranına Dön
-          </button>
+      <div className="min-h-screen bg-[#F8FAFC] text-gray-800 flex items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-[#D32F2F] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-semibold text-gray-500">Oturum kontrol ediliyor...</p>
         </div>
       </div>
     );
   }
 
-  return <Login onLoginSuccess={() => setIsLoggedIn(true)} />;
+  if (isAuthenticated && user) {
+    return <DashboardPage />;
+  }
+
+  return <Login />;
 }
 
 export default App;

@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Dumbbell, Timer, TrendingUp } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase/firebase';
+import { loginUser } from '../redux/authSlice';
 
-const Login = ({ onLoginSuccess }) => {
+const Login = () => {
+  const dispatch = useDispatch();
+  const { loading } = useSelector((state) => state.auth);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,24 +19,14 @@ const Login = ({ onLoginSuccess }) => {
       return;
     }
 
-    setLoading(true);
-    try {
-      if (auth) {
-        await signInWithEmailAndPassword(auth, email.trim(), password);
-        toast.success('Giriş başarılı!');
-        if (onLoginSuccess) onLoginSuccess();
-      } else {
-        // Fallback demo success
-        toast.success('Giriş başarılı! (Demo)');
-        if (onLoginSuccess) onLoginSuccess();
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Giriş başarısız: E-posta veya şifre hatalı.');
-    } finally {
-      setLoading(false);
+    const resultAction = await dispatch(loginUser({ email, password }));
+    if (loginUser.fulfilled.match(resultAction)) {
+      toast.success('Giriş başarılı!');
+    } else {
+      toast.error(resultAction.payload || 'Giriş başarısız.');
     }
   };
+
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-[#F8FAFC] relative overflow-hidden font-sans">
